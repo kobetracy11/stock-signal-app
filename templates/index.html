@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Stock Signal Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f13;
+      color: #e2e2e2;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    header {
+      background: #18181f;
+      padding: 16px;
+      border-bottom: 1px solid #2a2a35;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    h1 { font-size: 18px; font-weight: 600; color: #fff; }
+    .subtitle { font-size: 11px; color: #666; margin-top: 2px; }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      background: #0f0f13;
+      border: 1px solid #2a2a35;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      text-transform: uppercase;
+    }
+
+    .search-bar input::placeholder { color: #444; text-transform: none; }
+    .search-bar input:focus { border-color: #6366f1; }
+
+    .search-bar button {
+      background: #6366f1;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 18px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .search-bar button:active { background: #4f46e5; }
+
+    .tabs {
+      display: flex;
+      background: #18181f;
+      border-bottom: 1px solid #2a2a35;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab.active {
+      color: #6366f1;
+      border-bottom-color: #6366f1;
+    }
+
+    .section { padding: 12px 16px; }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #555;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .stock-card {
+      background: #18181f;
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      border: 1px solid #2a2a35;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      position: relative;
+    }
+
+    .stock-card.pinned {
+      border-color: #6366f1;
+    }
+
+    .stock-card:active { opacity: 0.85; }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .card-left { display: flex; align-items: center; gap: 10px; }
+
+    .ticker-badge {
+      background: #22222e;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.04em;
+    }
+
+    .ticker-info {}
+    .ticker-price { font-size: 13px; color: #888; }
+    .ticker-grade { font-size: 11px; font-weight: 600; margin-top: 2px; }
+
+    .pin-btn {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+
+    .pin-btn.pinned { opacity: 1; }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .score-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      flex-shrink: 0;
+      border: 2.5px solid;
+    }
+
+    .score-bars { flex: 1; }
+
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .bar-label { font-size: 10px; color: #555; width: 68px; flex-shrink: 0; }
+
+    .bar-track {
+      flex: 1;
+      height: 5px;
+      background: #22222e;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.6s ease;
+    }
+
+    .bar-val { font-size: 10px; color: #555; width: 22px; text-align: right; flex-shrink: 0; }
+
+    .signals-list {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #22222e;
+      display: none;
+    }
+
+    .signals-list.open { display: block; }
+
+    .signal-item {
+      font-size: 12px;
+      color: #aaa;
+      padding: 3px 0;
+      line-height: 1.4;
+    }
+
+    .expand-hint {
+      font-size: 11px;
+      color: #444;
+      text-align: right;
+      margin-top: 6px;
+    }
+
+    /* Search result card */
+    .result-card {
+      background: #18181f;
+      border-radius: 14px;
+      padding: 16px;
+      border: 1px solid #2a2a35;
+      margin-top: 12px;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .result-ticker { font-size: 22px; font-weight: 700; color: #fff; }
+    .result-price { font-size: 14px; color: #888; margin-top: 2px; }
+
+    .big-score {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 700;
+      border: 3px solid;
+      flex-direction: column;
+    }
+
+    .big-score-grade { font-size: 9px; font-weight: 500; margin-top: 1px; }
+
+    .result-bars { margin-bottom: 14px; }
+
+    .result-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+
+    .result-bar-label { font-size: 12px; color: #888; width: 120px; flex-shrink: 0; }
+
+    .result-bar-track {
+      flex: 1;
+      height: 7px;
+      background: #22222e;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .result-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.8s ease;
+    }
+
+    .result-bar-val { font-size: 12px; color: #666; width: 36px; text-align: right; flex-shrink: 0; }
+
+    .result-signals { margin-top: 10px; }
+    .result-signal-item {
+      font-size: 13px;
+      color: #aaa;
+      padding: 5px 0;
+      border-bottom: 1px solid #1e1e28;
+      line-height: 1.4;
+    }
+
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-pin { background: #6366f1; color: #fff; }
+    .btn-pin.pinned { background: #22222e; color: #6366f1; border: 1px solid #6366f1; }
+    .btn-refresh { background: #22222e; color: #aaa; }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #444;
+      font-size: 14px;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #2a2a35;
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty { text-align: center; padding: 40px 20px; color: #444; font-size: 14px; }
+
+    #tab-search { display: none; }
+    #tab-watchlist { display: none; }
+    #tab-pinned { display: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <h1>📊 Signal Dashboard</h1>
+      <div class="subtitle">Small/mid cap signal aggregator</div>
+    </div>
+  </div>
+  <div class="search-bar">
+    <input type="text" id="ticker-input" placeholder="Search ticker (e.g. GME)" maxlength="6">
+    <button onclick="searchTicker()">Scan</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('search')" id="nav-search">Search</div>
+  <div class="tab" onclick="switchTab('watchlist')" id="nav-watchlist">Watchlist</div>
+  <div class="tab" onclick="switchTab('pinned')" id="nav-pinned">📌 Pinned</div>
+</div>
+
+<!-- SEARCH TAB -->
+<div id="tab-search">
+  <div class="section">
+    <div id="search-result"></div>
+  </div>
+</div>
+
+<!-- WATCHLIST TAB -->
+<div id="tab-watchlist">
+  <div class="section">
+    <div class="section-label">Ranked by composite score</div>
+    <div id="watchlist-content">
+      <div class="loading"><div class="spinner"></div>Loading signals...</div>
+    </div>
+  </div>
+</div>
+
+<!-- PINNED TAB -->
+<div id="tab-pinned">
+  <div class="section">
+    <div class="section-label">Your pinned stocks</div>
+    <div id="pinned-content">
+      <div class="loading"><div class="spinner"></div>Loading pinned...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentTab = 'search';
+
+  function switchTab(tab) {
+    ['search', 'watchlist', 'pinned'].forEach(t => {
+      document.getElementById(`tab-${t}`).style.display = 'none';
+      document.getElementById(`nav-${t}`).classList.remove('active');
+    });
+    document.getElementById(`tab-${tab}`).style.display = 'block';
+    document.getElementById(`nav-${tab}`).classList.add('active');
+    currentTab = tab;
+
+    if (tab === 'watchlist') loadWatchlist();
+    if (tab === 'pinned') loadPinned();
+  }
+
+  // Show search tab by default
+  document.getElementById('tab-search').style.display = 'block';
+
+  function scoreColor(score) {
+    if (score >= 75) return '#22c55e';
+    if (score >= 55) return '#f59e0b';
+    if (score >= 35) return '#f97316';
+    return '#6b7280';
+  }
+
+  function barColor(key) {
+    const colors = {
+      technical: '#6366f1',
+      sentiment: '#ec4899',
+      congressional: '#f59e0b',
+      insider: '#14b8a6',
+      news: '#8b5cf6'
+    };
+    return colors[key] || '#6366f1';
+  }
+
+  function barLabel(key) {
+    const labels = {
+      technical: 'Technical',
+      sentiment: 'Social',
+      congressional: 'Congress',
+      insider: 'Insider',
+      news: 'News'
+    };
+    return labels[key] || key;
+  }
+
+  function pct(score, max) {
+    return Math.round((score / max) * 100);
+  }
+
+  function renderCard(data) {
+    const color = scoreColor(data.score);
+    const isPinned = data.pinned;
+    const bd = data.breakdown || {};
+
+    const bars = Object.entries(bd).map(([key, val]) => `
+      <div class="bar-row">
+        <span class="bar-label">${barLabel(key)}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${pct(val.score, val.max)}%; background:${barColor(key)}"></div>
+        </div>
+        <span class="bar-val">${val.score}/${val.max}</span>
+      </div>
+    `).join('');
+
+    const signals = (data.signals || []).map(s =>
+      `<div class="signal-item">${s}</div>`
+    ).join('');
+
+    return `
+      <div class="stock-card ${isPinned ? 'pinned' : ''}" onclick="toggleSignals('${data.ticker}')">
+        <div class="card-top">
+          <div class="card-left">
+            <div class="ticker-badge">${data.ticker}</div>
+            <div class="ticker-info">
+              <div class="ticker-price">${data.price ? '$' + data.price : ''}</div>
+              <div class="ticker-grade" style="color:${color}">${data.grade || ''}</div>
+            </div>
+          </div>
+          <button class="pin-btn ${isPinned ? 'pinned' : ''}"
+            onclick="event.stopPropagation(); togglePin('${data.ticker}', this)">
+            ${isPinned ? '📌' : '🔖'}
+          </button>
+        </div>
+        <div class="score-row">
+          <div class="score-circle" style="color:${color}; border-color:${color}">
+            ${data.score}
+          </div>
+          <div class="score-bars">${bars}</div>
+        </div>
+        <div class="signals-list" id="signals-${data.ticker}">
+          ${signals}
+        </div>
+        <div class="expand-hint">tap to ${signals ? 'see signals ▾' : ''}</div>
+      </div>
+    `;
+  }
+
+  function toggleSignals(ticker) {
+    const el = document.getElementById(`signals-${ticker}`);
+    if (el) el.classList.toggle('open');
+  }
+
+  async function searchTicker() {
+    const input = document.getElementById('ticker-input');
+    const ticker = input.value.trim().toUpperCase();
+    if (!ticker) return;
+
+    switchTab('search');
+    const el = document.getElementById('search-result');
+    el.innerHTML = `<div class="loading"><div class="spinner"></div>Scanning ${ticker}...</div>`;
+
+    try {
+      const resp = await fetch(`/api/score/${ticker}`);
+      const data = await resp.json();
+      if (data.error) {
+        el.innerHTML = `<div class="empty">Error: ${data.error}</div>`;
+        return;
+      }
+
+      const color = scoreColor(data.score);
+      const bd = data.breakdown || {};
+
+      const bars = Object.entries(bd).map(([key, val]) => `
+        <div class="result-bar-row">
+          <span class="result-bar-label">${barLabel(key)} (/${val.max})</span>
+          <div class="result-bar-track">
+            <div class="result-bar-fill" style="width:${pct(val.score, val.max)}%; background:${barColor(key)}"></div>
+          </div>
+          <span class="result-bar-val">${val.score}</span>
+        </div>
+      `).join('');
+
+      const signals = (data.signals || []).map(s =>
+        `<div class="result-signal-item">${s}</div>`
+      ).join('');
+
+      el.innerHTML = `
+        <div class="result-card">
+          <div class="result-header">
+            <div>
+              <div class="result-ticker">${data.ticker}</div>
+              <div class="result-price">${data.price ? '$' + data.price : 'Price unavailable'}</div>
+            </div>
+            <div class="big-score" style="color:${color}; border-color:${color}">
+              ${data.score}
+              <div class="big-score-grade">${data.grade}</div>
+            </div>
+          </div>
+          <div class="result-bars">${bars}</div>
+          <div class="result-signals">${signals}</div>
+          <div class="result-actions">
+            <button class="btn btn-pin ${data.pinned ? 'pinned' : ''}"
+              id="pin-btn-${data.ticker}"
+              onclick="togglePin('${data.ticker}', this)">
+              ${data.pinned ? '📌 Pinned' : '🔖 Pin Stock'}
+            </button>
+            <button class="btn btn-refresh" onclick="rescan('${data.ticker}')">↺ Rescan</button>
+          </div>
+        </div>
+      `;
+    } catch(e) {
+      el.innerHTML = `<div class="empty">Failed to load. Check connection.</div>`;
+    }
+  }
+
+  async function rescan(ticker) {
+    document.getElementById('ticker-input').value = ticker;
+    await searchTicker();
+  }
+
+  async function togglePin(ticker, btn) {
+    const isPinned = btn.classList.contains('pinned');
+    const endpoint = isPinned ? '/api/unpin' : '/api/pin';
+
+    await fetch(endpoint, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ticker})
+    });
+
+    btn.classList.toggle('pinned');
+    if (btn.textContent.includes('Pin') || btn.textContent.includes('📌')) {
+      btn.textContent = isPinned ? '🔖 Pin Stock' : '📌 Pinned';
+      btn.classList.toggle('pinned', !isPinned);
+    } else {
+      btn.textContent = isPinned ? '🔖' : '📌';
+    }
+
+    // Refresh pinned tab if open
+    if (currentTab === 'pinned') loadPinned();
+  }
+
+  async function loadWatchlist() {
+    const el = document.getElementById('watchlist-content');
+    el.innerHTML = `<div class="loading"><div class="spinner"></div>Scoring watchlist...</div>`;
+    try {
+      const resp = await fetch('/api/watchlist');
+      const stocks = await resp.json();
+      if (!stocks.length) {
+        el.innerHTML = `<div class="empty">No stocks to show.</div>`;
+        return;
+      }
+      el.innerHTML = stocks.map(renderCard).join('');
+    } catch(e) {
+      el.innerHTML = `<div class="empty">Failed to load watchlist.</div>`;
+    }
+  }
+
+  async function loadPinned() {
+    const el = document.getElementById('pinned-content');
+    el.innerHTML = `<div class="loading"><div class="spinner"></div>Loading pinned stocks...</div>`;
+    try {
+      const resp = await fetch('/api/pinned');
+      const stocks = await resp.json();
+      if (!stocks.length) {
+        el.innerHTML = `<div class="empty">No pinned stocks yet.<br>Search a ticker and tap 🔖 to pin it.</div>`;
+        return;
+      }
+      el.innerHTML = stocks.map(renderCard).join('');
+    } catch(e) {
+      el.innerHTML = `<div class="empty">Failed to load pinned stocks.</div>`;
+    }
+  }
+
+  // Allow Enter key to search
+  document.getElementById('ticker-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchTicker();
+  });
+</script>
+</body>
+</html>

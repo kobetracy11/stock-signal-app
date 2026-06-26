@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: stock-signal-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: REDDIT_CLIENT_ID
+        sync: false
+      - key: REDDIT_CLIENT_SECRET
+        sync: false
+      - key: REDDIT_USER_AGENT
+        value: StockSignalApp/1.0
