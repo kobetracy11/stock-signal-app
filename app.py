@@ -1,6 +1,7 @@
 import os
 import json
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request
 from dotenv import load_dotenv
@@ -84,21 +85,27 @@ def get_pinned():
 def watchlist():
     """Return scored list of trending small cap tickers"""
     default_tickers = [
-        "GME", "AMC", "BBBY", "MULN", "FFIE", "NVAX", "MMAT",
-        "SNDL", "CLOV", "WKHS", "RIDE", "GOEV", "NKLA", "SPCE",
-        "TLRY", "SFIX", "WISH", "EXPR", "KOSS", "BB"
+        "GME", "AMC", "MULN", "FFIE", "NVAX",
+        "SNDL", "NKLA", "SPCE", "TLRY", "BB"
     ]
     pinned = load_pinned()
-    all_tickers = list(set(pinned + default_tickers))
+    all_tickers = list(set(pinned + default_tickers))[:12]  # Cap at 12 total
 
     results = []
-    for ticker in all_tickers:
+    def score_ticker(ticker):
         try:
             data = get_cached_score(ticker)
             data["pinned"] = ticker in pinned
-            results.append(data)
+            return data
         except Exception:
-            continue
+            return None
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {executor.submit(score_ticker, t): t for t in all_tickers}
+        for future in as_completed(futures, timeout=25):
+            result = future.result()
+            if result:
+                results.append(result)
 
     results.sort(key=lambda x: (x.get("pinned", False), x.get("score", 0)), reverse=True)
     return jsonify(results)
